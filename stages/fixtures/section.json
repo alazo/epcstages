@@ -31,14 +31,14 @@
   "model": "stages.section",
   "pk": 5,
   "fields": {
-    "name": "MP_ASE"
+    "name": "MP-ASE"
   }
 },
 {
   "model": "stages.section",
   "pk": 6,
   "fields": {
-    "name": "MP_ASSC"
+    "name": "MP-ASSC"
   }
 },
 {

@@ -13,7 +13,8 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.files import File
 from django.core.mail import EmailMessage
-from django.db import transaction
+from django.core.exceptions import MultipleObjectsReturned
+from django.db import transaction, IntegrityError
 from django.db.models import Count, Value, Q, Sum
 from django.db.models.functions import Concat
 from django.http import HttpResponse, HttpResponseNotAllowed, HttpResponseRedirect
@@ -316,14 +317,92 @@ def _import_date(txt):
     elif isinstance(txt, str):
         return datetime.strptime(txt, '%d.%m.%Y').date()
 
-def _import_option_ase(txt=None):
+
+def _import_option_ase(txt=None, default_value=None):
     if txt:
+        if txt == '' and default_value is not None:
+            txt = default_value
         try:
             return Option.objects.get(name=txt)
         except Option.DoesNotExist:
             return None
     else:
         return None
+
+    # Mapping between column names of a tabular file and Student field names
+STUDENT_MP_IMPORT_MAPPING = {
+    'ELE_NUMERO': 'ext_id',
+    'ELE_NOM': 'last_name',
+    'ELE_PRENOM': 'first_name',
+    'ELE_RUE': 'street',
+    'ELE_NPA_LOCALITE': 'city',  # pcode is separated from city in prepare_import
+    'ELE_TEL_PRIVE': 'tel',
+    'ELE_TEL_MOBILE': 'mobile',
+    'ELE_EMAIL_RPN': 'email',
+    'ELE_DATE_NAISSANCE': 'birth_date',
+    'ELE_AVS': 'avs',
+    'ELE_SEXE': 'gender',
+    'INS_CLASSE': 'klass',
+    'PROF_DOMAINE_SPEC': 'option_ase',
+}
+
+
+class StudentMpImportView_2018(ImportViewBase):
+    """
+    Import CLOEE file for MP students (MPTS ASE et MPS ASSC)
+    A student should not be called twice
+    """
+
+    title = "Importation étudiants MP"
+    form_class = StudentImportForm
+
+    def import_data(self, up_file):
+        """ Import Student data from uploaded file. """
+        student_mapping = STUDENT_MP_IMPORT_MAPPING
+        mapping_option_ase = {
+            'GEN': 1, 'ENF': 2, 'HAN': 3, 'PAG': 4
+        }
+        def strip(val):
+            return val.strip() if isinstance(val, str) else val
+
+        obj_created = obj_modified = obj_error = 0
+        err_msg = list()
+        old_students_ids = set(x.ext_id for x in Student.objects.filter(klass__section__name__in=['MP-ASSC', 'MP-ASE']))
+
+        for line in up_file:
+            student_defaults = {
+                val: strip(line[key]) for key, val in student_mapping.items()
+            }
+
+            student_defaults['birth_date'] = _import_date(student_defaults['birth_date'])
+            student_defaults['option_ase'] = _import_option_ase(student_defaults['option_ase'], 'Généraliste')
+
+            defaults = Student.prepare_import(student_defaults)
+
+            try:
+                student = Student.objects.get(ext_id=student_defaults['ext_id'])
+                # data CLOEE override Student data
+                for key, val in defaults.items():
+                    if getattr(student, key) != val:
+                        setattr(student, key, val)
+                        modified = True
+                obj_modified += 1
+                student.archived = False
+                student.save()
+                old_students_ids.remove(student.ext_id)
+            except Student.DoesNotExist:
+                student = Student.objects.create(**defaults)
+                obj_created += 1
+                err_msg.append("Création pour {0} {1}".format(student_defaults['last_name'], student_defaults['first_name']))
+
+        #Archive students remaining
+        for id in old_students_ids:
+            student = Student.objects.get(ext_id=id)
+            student.archived = True
+            student.save()
+
+        # FIXME: implement arch_staled
+        return {'created': obj_created, 'modified': obj_modified, 'error': obj_error, 'errors': err_msg}
 
 
 class StudentFeImportView_2018(ImportViewBase):

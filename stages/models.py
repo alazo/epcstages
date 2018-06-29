@@ -254,6 +254,7 @@ class Student(models.Model):
     district = models.CharField(max_length=20, blank=True, verbose_name='Canton')
     tel = models.CharField(max_length=40, blank=True, verbose_name='Téléphone')
     mobile = models.CharField(max_length=40, blank=True, verbose_name='Portable')
+    # login = models.CharField(max_length=40, default='', verbose_name='Login RPN')
     email = models.EmailField(verbose_name='Courriel', blank=True)
     avs = models.CharField(max_length=20, blank=True, verbose_name='No AVS')
     option_ase = models.ForeignKey(Option, null=True, blank=True, on_delete=models.SET_NULL)

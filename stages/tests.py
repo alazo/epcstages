@@ -476,7 +476,6 @@ class ImportTests(TestCase):
         """
         Import of the CLOEE export file for FE students (ASAFE, ASEFE, ASSCF, EDE, EDS) version 2018!!
         """
-
         path = os.path.join(os.path.dirname(__file__), 'test_files', 'CLOEE2_Export_FE_2018_TEST2.xlsx')
         self.client.login(username='me', password='mepassword')
         with open(path, 'rb') as fh:
@@ -495,6 +494,22 @@ class ImportTests(TestCase):
 
         # student = Student.objects.get(ext_id=66666)
         # self.assertEqual(student.corporation.name, 'Crèche Je veux grandir')
+
+    def test_import_student_mp_2018(self):
+        """
+        Import of the CLOEE export file for MP students
+        """
+
+        path = os.path.join(os.path.dirname(__file__), 'test_files', 'CLOEE2_Export_MP_2018_TEST2.xlsx')
+        self.client.login(username='me', password='mepassword')
+        with open(path, 'rb') as fh:
+            response = self.client.post(reverse('import-students-mp-2018'), {'upload': fh}, follow=True)
+        msg = "\n".join(str(m) for m in response.context['messages'])
+        # self.assertIn("La classe '1ASSCFEz' n'existe pas encore", msg)
+
+        st = Student.objects.filter().all()
+        print(st)
+        self.assertEqual(len(st), 4)  # Complete reading
 
 
     def test_import_hp(self):

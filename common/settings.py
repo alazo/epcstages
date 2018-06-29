@@ -115,6 +115,7 @@ STUDENT_IMPORT_MAPPING = {
     'ELE_NPA_LOCALITE': 'city',  # pcode is separated from city in prepare_import
     'ELE_TEL_PRIVE': 'tel',
     'ELE_TEL_MOBILE': 'mobile',
+    'ELE_COMPTE_RPN': 'login',
     'ELE_EMAIL_RPN': 'email',
     'ELE_DATE_NAISSANCE': 'birth_date',
     'ELE_AVS': 'avs',
@@ -138,7 +139,7 @@ INSTRUCTOR_IMPORT_MAPPING = {
     'FORM_NOM': 'last_name',
     'FORM_PRENOM': 'first_name',
     # 'TEL_FORMATEUR': 'tel',
-    'FORM_FORMATEUR': 'email',
+    'FORM_EMAIL': 'email',
 }
 
 
